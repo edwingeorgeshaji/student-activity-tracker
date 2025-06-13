@@ -37,6 +37,19 @@
             background-color: #2b6cb0;
             color: white;
         }
+        .calendar-day {
+            position: relative;
+        }
+        .calendar-day .event-indicator {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #ef4444;
+            border-radius: 50%;
+        }
         .modal-overlay {
             display: none;
             position: fixed;
@@ -55,7 +68,7 @@
             max-height: 80vh;
             overflow-y: auto;
         }
-        /* Added animation for the to-do list */
+        
         @keyframes fade-in {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -63,12 +76,20 @@
         .animate-fade-in {
             animation: fade-in 0.3s ease-out;
         }
+        .event-item {
+            background-color: #f0f4f8;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body class="antialiased text-gray-800">
     
     <div class="flex flex-col md:flex-row min-h-screen">
-        <!-- Sidebar Navigation -->
         <aside class="w-full md:w-64 bg-gray-800 text-white p-4 md:p-6 shadow-lg">
             <h1 class="text-2xl font-bold mb-8 text-center">Guido Study Planner ✌🏻</h1>
             <nav id="nav-menu">
@@ -90,9 +111,7 @@
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 p-6 md:p-10">
-            <!-- Home Page -->
             <section id="home" class="page active">
                 <div class="bg-white p-8 rounded-xl shadow-md text-center">
                     <h2 class="text-3xl font-bold mb-4">Welcome Champ! 💪🏻</h2>
@@ -108,15 +127,12 @@
                 </div>
             </section>
 
-            <!-- Subjects Page -->
             <section id="subjects" class="page">
                 <h2 class="text-3xl font-bold mb-6">My Subjects</h2>
                 <div id="subjects-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Subject cards will be loaded here by JavaScript -->
-                </div>
+                    </div>
             </section>
 
-            <!-- To-Do List Page -->
             <section id="todo" class="page">
                 <h2 class="text-3xl font-bold mb-6">My To-Do List</h2>
                 <div class="bg-white p-8 rounded-xl shadow-md">
@@ -128,7 +144,6 @@
                 </div>
             </section>
 
-            <!-- Calendar Page -->
             <section id="calendar" class="page">
                  <h2 class="text-3xl font-bold mb-6">Calendar</h2>
                  <div class="bg-white p-8 rounded-xl shadow-md">
@@ -141,7 +156,6 @@
                  </div>
             </section>
 
-            <!-- Timer Page -->
             <section id="timer" class="page">
                 <h2 class="text-3xl font-bold mb-6">Pomodoro Timer</h2>
                 <div class="bg-white p-8 rounded-xl shadow-md text-center max-w-md mx-auto">
@@ -157,21 +171,35 @@
         </main>
     </div>
 
-    <!-- Study Tips Modal -->
     <div id="study-tips-modal" class="modal-overlay">
         <div class="modal-content relative">
             <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             <h3 id="modal-title" class="text-2xl font-bold mb-4">Study Tips</h3>
             <div id="modal-body" class="text-gray-700 space-y-2">
-                <!-- Modal content will be loaded here by JavaScript -->
+                </div>
+        </div>
+    </div>
+
+    <div id="event-modal" class="modal-overlay">
+        <div class="modal-content relative">
+            <button id="close-event-modal-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            <h3 id="event-modal-title" class="text-2xl font-bold mb-4">Events for <span id="event-date-display"></span></h3>
+            
+            <div class="mb-4">
+                <input type="text" id="event-title-input" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2" placeholder="Event title">
+                <input type="time" id="event-time-input" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2">
+                <button id="add-event-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition w-full">Add Event</button>
             </div>
+
+            <div id="events-list" class="space-y-2">
+                </div>
         </div>
     </div>
 
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- Data ---
+            
             const subjectsData = [
                 { "name": "Mathematics", "grade": "44/50", "teacher": "Prof. Edwin George Shaji" },
                 { "name": "Physics", "grade": "41/50", "teacher": "Dr. Chislon L Joseph" },
@@ -181,7 +209,6 @@
                 { "name": "C Programming", "grade": "34/50", "teacher": "Dr. Ann Catherine Luke" }
             ];
 
-            // DEBUG FIX: Removed invalid ``` which was causing a major syntax error.
             const quotes = [
                 { quote: "The future depends on what you do today.", author: "Mahatma Gandhi" },
                 { quote: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
@@ -214,8 +241,10 @@
                 "**Stay Hydrated and Eat Well:** Proper nutrition and hydration are crucial for brain function."
             ];
 
+            
+            const events = JSON.parse(localStorage.getItem('calendarEvents')) || {};
 
-            // --- Page Navigation ---
+            
             const navLinks = document.querySelectorAll('.nav-link');
             const pages = document.querySelectorAll('.page');
 
@@ -232,10 +261,10 @@
                 }
             });
 
-            // Set initial page
+            
             showPage('home');
 
-            // --- Home Page: Motivational Quote ---
+            
             const quoteEl = document.getElementById('quote');
             const quoteAuthorEl = document.getElementById('quote-author');
             const newQuoteBtn = document.getElementById('new-quote-btn');
@@ -251,9 +280,9 @@
                 displayQuote(currentQuoteIndex);
             });
 
-            displayQuote(currentQuoteIndex); // Display initial quote
+            displayQuote(currentQuoteIndex);
 
-            // --- Subjects Page ---
+            
             const subjectsContainer = document.getElementById('subjects-container');
             const modal = document.getElementById('study-tips-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
@@ -262,7 +291,7 @@
             let subjectsLoaded = false;
 
             function loadSubjects() {
-                // Only load subjects once to avoid duplication
+                
                 if (subjectsLoaded) return;
                 subjectsContainer.innerHTML = '';
                 subjectsData.forEach(subject => {
@@ -287,10 +316,10 @@
 
             subjectsContainer.addEventListener('click', (e) => {
                 if (e.target.classList.contains('study-tips-btn')) {
-                    // const subjectName = e.target.dataset.subject; // This could be used later for subject-specific tips
+                    
                     modalTitle.textContent = `General Study Tips`;
                     modalBody.innerHTML = generalStudyTips.map(tip => {
-                        // Simple markdown to HTML for bolding
+                        
                         return `<p>${tip.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
                     }).join('');
                     modal.style.display = 'flex';
@@ -299,14 +328,14 @@
 
             closeModalBtn.addEventListener('click', () => modal.style.display = 'none');
             modal.addEventListener('click', (e) => {
-                // Close modal if overlay is clicked
+                
                 if(e.target === modal) modal.style.display = 'none';
             });
             
-            // Load subjects only when the subjects tab is clicked
+            
             document.querySelector('a[href="#subjects"]').addEventListener('click', loadSubjects);
 
-            // --- To-Do List ---
+            
             const taskInput = document.getElementById('task-input');
             const addTaskBtn = document.getElementById('add-task-btn');
             const taskList = document.getElementById('task-list');
@@ -344,6 +373,24 @@
             const prevMonthBtn = document.getElementById('prev-month-btn');
             const nextMonthBtn = document.getElementById('next-month-btn');
             let currentDate = new Date();
+            let selectedDate = null;
+
+            // Event Modal Elements
+            const eventModal = document.getElementById('event-modal');
+            const closeEventModalBtn = document.getElementById('close-event-modal-btn');
+            const eventModalTitle = document.getElementById('event-modal-title');
+            const eventDateDisplay = document.getElementById('event-date-display');
+            const eventTitleInput = document.getElementById('event-title-input');
+            const eventTimeInput = document.getElementById('event-time-input');
+            const addEventBtn = document.getElementById('add-event-btn');
+            const eventsList = document.getElementById('events-list');
+
+            function formatDate(dateObj) {
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
 
             function renderCalendar() {
                 calendarGrid.innerHTML = '';
@@ -351,7 +398,6 @@
                 const year = currentDate.getFullYear();
                 monthYearEl.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
                 
-                // Get the day of the week for the first day of the month (0=Sun, 1=Mon, etc.)
                 const firstDayOfMonth = new Date(year, month, 1).getDay();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 
@@ -363,30 +409,154 @@
                     calendarGrid.appendChild(dayNameEl);
                 });
                 
-                // Add empty cells for days before the first day of the month
                 for (let i = 0; i < firstDayOfMonth; i++) {
                     calendarGrid.appendChild(document.createElement('div'));
                 }
 
-                // Add day cells for the month
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dayCell = document.createElement('div');
-                    dayCell.className = 'calendar-day text-center p-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors';
+                    const currentDayFullDate = new Date(year, month, day);
+                    const formattedDate = formatDate(currentDayFullDate);
+
+                    dayCell.className = 'calendar-day text-center p-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors relative';
                     dayCell.textContent = day;
+                    dayCell.dataset.date = formattedDate;
+
                     const today = new Date();
                     if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
                         dayCell.classList.add('today');
                     }
+
+                    // Add event indicator if there are events for this day
+                    if (events[formattedDate] && events[formattedDate].length > 0) {
+                        const eventIndicator = document.createElement('div');
+                        eventIndicator.className = 'event-indicator';
+                        dayCell.appendChild(eventIndicator);
+                    }
+
+                    dayCell.addEventListener('click', () => {
+                        selectedDate = formattedDate;
+                        eventDateDisplay.textContent = new Date(selectedDate).toLocaleDateString();
+                        renderEventsForSelectedDate();
+                        eventModal.style.display = 'flex';
+                    });
                     calendarGrid.appendChild(dayCell);
                 }
             }
+
+            function renderEventsForSelectedDate() {
+                eventsList.innerHTML = '';
+                const dayEvents = events[selectedDate] || [];
+
+                if (dayEvents.length === 0) {
+                    eventsList.innerHTML = '<p class="text-gray-500">No events for this day.</p>';
+                    return;
+                }
+
+                dayEvents.sort((a, b) => {
+                    if (a.time && b.time) {
+                        return a.time.localeCompare(b.time);
+                    }
+                    return 0;
+                });
+
+
+                dayEvents.forEach(event => {
+                    const eventItem = document.createElement('div');
+                    eventItem.className = 'event-item';
+                    eventItem.innerHTML = `
+                        <span class="font-medium">${event.time ? event.time + ' - ' : ''}${event.title}</span>
+                        <div>
+                            <button data-event-id="${event.id}" class="edit-event-btn text-blue-500 hover:text-blue-700 mr-2" title="Edit Event"><i class="fas fa-edit"></i></button>
+                            <button data-event-id="${event.id}" class="delete-event-btn text-red-500 hover:text-red-700" title="Delete Event"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    `;
+                    eventsList.appendChild(eventItem);
+                });
+            }
+
+            addEventBtn.addEventListener('click', () => {
+                const title = eventTitleInput.value.trim();
+                const time = eventTimeInput.value;
+
+                if (selectedDate && title) {
+                    if (!events[selectedDate]) {
+                        events[selectedDate] = [];
+                    }
+                    const newEvent = {
+                        id: Date.now(),
+                        title: title,
+                        time: time
+                    };
+                    events[selectedDate].push(newEvent);
+                    localStorage.setItem('calendarEvents', JSON.stringify(events));
+                    eventTitleInput.value = '';
+                    eventTimeInput.value = '';
+                    renderEventsForSelectedDate();
+                    renderCalendar();
+                }
+            });
+
+            eventsList.addEventListener('click', (e) => {
+                const eventId = e.target.closest('button')?.dataset.eventId;
+                if (!eventId) return;
+
+                if (e.target.closest('.delete-event-btn')) {
+                    if (confirm('Are you sure you want to delete this event?')) {
+                        events[selectedDate] = events[selectedDate].filter(event => event.id !== parseInt(eventId));
+                        if (events[selectedDate].length === 0) {
+                            delete events[selectedDate];
+                        }
+                        localStorage.setItem('calendarEvents', JSON.stringify(events));
+                        renderEventsForSelectedDate();
+                        renderCalendar();
+                    }
+                } else if (e.target.closest('.edit-event-btn')) {
+                    const eventToEdit = events[selectedDate].find(event => event.id === parseInt(eventId));
+                    if (eventToEdit) {
+                        
+                        eventTitleInput.value = eventToEdit.title;
+                        eventTimeInput.value = eventToEdit.time;
+                        
+                        addEventBtn.textContent = 'Update Event';
+                        addEventBtn.onclick = () => {
+                            eventToEdit.title = eventTitleInput.value.trim();
+                            eventToEdit.time = eventTimeInput.value;
+                            localStorage.setItem('calendarEvents', JSON.stringify(events));
+                            eventTitleInput.value = '';
+                            eventTimeInput.value = '';
+                            addEventBtn.textContent = 'Add Event';
+                            addEventBtn.onclick = addEvent;
+                            renderEventsForSelectedDate();
+                            renderCalendar();
+                        };
+                    }
+                }
+            });
+
+            closeEventModalBtn.addEventListener('click', () => {
+                eventModal.style.display = 'none';
+                eventTitleInput.value = '';
+                eventTimeInput.value = '';
+                addEventBtn.textContent = 'Add Event';
+                addEventBtn.onclick = addEvent;
+            });
+            eventModal.addEventListener('click', (e) => {
+                if(e.target === eventModal) {
+                    eventModal.style.display = 'none';
+                    eventTitleInput.value = '';
+                    eventTimeInput.value = '';
+                    addEventBtn.textContent = 'Add Event';
+                    addEventBtn.onclick = addEvent;
+                }
+            });
+
             prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
             nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
             
-            // Render calendar only when the calendar tab is clicked
             document.querySelector('a[href="#calendar"]').addEventListener('click', renderCalendar);
 
-            // --- Study Timer (Pomodoro) ---
+            
             const timerDisplay = document.getElementById('timer-display');
             const timerModeEl = document.getElementById('timer-mode');
             const startBtn = document.getElementById('start-timer-btn');
@@ -399,7 +569,7 @@
             let isWorkSession = true;
             const workDuration = 25 * 60;
             const breakDuration = 5 * 60;
-            let toneSynth; // For sound
+            let toneSynth;
 
             function updateTimerDisplay() {
                 const minutes = Math.floor(totalSeconds / 60);
@@ -408,7 +578,7 @@
             }
 
             function startTimer() {
-                // Initialize Tone.js on first user interaction
+                
                 if (!toneSynth) {
                     toneSynth = new Tone.Synth().toDestination();
                 }
@@ -440,7 +610,7 @@
             }
 
             function resetTimer() {
-                pauseTimer(); // This also clears the interval
+                pauseTimer();
                 isWorkSession = true;
                 totalSeconds = workDuration;
                 timerModeEl.textContent = 'Time to focus pal!';
@@ -452,9 +622,7 @@
             pauseBtn.addEventListener('click', pauseTimer);
             resetBtn.addEventListener('click', resetTimer);
 
-            updateTimerDisplay(); // Initial display
-
-            // DEBUG FIX: Removed redundant, nested DOMContentLoaded listener.
+            updateTimerDisplay();
         });
     </script>
 </body>
