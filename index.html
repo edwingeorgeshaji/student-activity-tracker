@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guido Academic Planner - R.E.C</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link.active {
+            background-color: #4a5568;
+            color: white;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        .task-item.completed span {
+            text-decoration: line-through;
+            color: #a0aec0;
+        }
+        #calendar-grid {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+        }
+        .calendar-day.today {
+            background-color: #2b6cb0;
+            color: white;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        /* Added animation for the to-do list */
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+    
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 bg-gray-800 text-white p-4 md:p-6 shadow-lg">
+            <h1 class="text-2xl font-bold mb-8 text-center">Guido Study Planner ✌🏻</h1>
+            <nav id="nav-menu">
+                <a href="#home" class="nav-link active flex items-center p-3 rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-home w-6 mr-3"></i> Home
+                </a>
+                <a href="#subjects" class="nav-link flex items-center p-3 rounded-lg mt-2 hover:bg-gray-700">
+                    <i class="fas fa-book w-6 mr-3"></i> Subjects
+                </a>
+                <a href="#todo" class="nav-link flex items-center p-3 rounded-lg mt-2 hover:bg-gray-700">
+                    <i class="fas fa-list-check w-6 mr-3"></i> To-Do List
+                </a>
+                <a href="#calendar" class="nav-link flex items-center p-3 rounded-lg mt-2 hover:bg-gray-700">
+                    <i class="fas fa-calendar-alt w-6 mr-3"></i> Calendar
+                </a>
+                <a href="#timer" class="nav-link flex items-center p-3 rounded-lg mt-2 hover:bg-gray-700">
+                    <i class="fas fa-clock w-6 mr-3"></i> Study Timer
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 md:p-10">
+            <!-- Home Page -->
+            <section id="home" class="page active">
+                <div class="bg-white p-8 rounded-xl shadow-md text-center">
+                    <h2 class="text-3xl font-bold mb-4">Welcome Champ! 💪🏻</h2>
+                    <p class="text-gray-600 mb-6">This is your personal space to organize your academic life. If you are not here to study, read the quotes below, get motivated and study (better start right now 😊).</p>
+                    
+                    <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded-md min-h-[120px] flex flex-col justify-center">
+                        <p id="quote" class="text-lg italic">"The secret to getting ahead is getting started."</p>
+                        <p id="quote-author" class="text-right mt-2 font-medium">- Mark Twain</p>
+                    </div>
+                    <button id="new-quote-btn" class="mt-6 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition w-52 h-10 flex items-center justify-center mx-auto">
+                        Next Quote
+                    </button>
+                </div>
+            </section>
+
+            <!-- Subjects Page -->
+            <section id="subjects" class="page">
+                <h2 class="text-3xl font-bold mb-6">My Subjects</h2>
+                <div id="subjects-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Subject cards will be loaded here by JavaScript -->
+                </div>
+            </section>
+
+            <!-- To-Do List Page -->
+            <section id="todo" class="page">
+                <h2 class="text-3xl font-bold mb-6">My To-Do List</h2>
+                <div class="bg-white p-8 rounded-xl shadow-md">
+                    <div class="flex mb-4">
+                        <input type="text" id="task-input" class="flex-grow p-3 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add a new task...">
+                        <button id="add-task-btn" class="bg-blue-500 text-white px-6 py-3 rounded-r-lg hover:bg-blue-600 transition">Add</button>
+                    </div>
+                    <ul id="task-list" class="space-y-3"></ul>
+                </div>
+            </section>
+
+            <!-- Calendar Page -->
+            <section id="calendar" class="page">
+                 <h2 class="text-3xl font-bold mb-6">Calendar</h2>
+                 <div class="bg-white p-8 rounded-xl shadow-md">
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-200"><i class="fas fa-chevron-left"></i></button>
+                        <h3 id="month-year" class="text-xl font-semibold"></h3>
+                        <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-200"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div id="calendar-grid" class="grid gap-2"></div>
+                 </div>
+            </section>
+
+            <!-- Timer Page -->
+            <section id="timer" class="page">
+                <h2 class="text-3xl font-bold mb-6">Pomodoro Timer</h2>
+                <div class="bg-white p-8 rounded-xl shadow-md text-center max-w-md mx-auto">
+                    <div id="timer-display" class="text-8xl font-bold text-gray-800 mb-4">25:00</div>
+                    <div id="timer-mode" class="text-xl text-gray-500 mb-6">Time to focus pal!</div>
+                    <div class="flex justify-center space-x-4">
+                        <button id="start-timer-btn" class="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition w-32">Start</button>
+                        <button id="pause-timer-btn" class="bg-yellow-500 text-white px-8 py-3 rounded-lg hover:bg-yellow-600 transition w-32">Pause</button>
+                        <button id="reset-timer-btn" class="bg-red-500 text-white px-8 py-3 rounded-lg hover:bg-red-600 transition w-32">Reset</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Study Tips Modal -->
+    <div id="study-tips-modal" class="modal-overlay">
+        <div class="modal-content relative">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            <h3 id="modal-title" class="text-2xl font-bold mb-4">Study Tips</h3>
+            <div id="modal-body" class="text-gray-700 space-y-2">
+                <!-- Modal content will be loaded here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Data ---
+            const subjectsData = [
+                { "name": "Mathematics", "grade": "44/50", "teacher": "Prof. Edwin George Shaji" },
+                { "name": "Physics", "grade": "41/50", "teacher": "Dr. Chislon L Joseph" },
+                { "name": "Digital Logic", "grade": "31/50", "teacher": "Dr. Roshan Neilson" },
+                { "name": "Hardware", "grade": "37/50", "teacher": "Dr. Rahul Raj" },
+                { "name": "Economics", "grade": "40/50", "teacher": "Prof. Dheeraj K.T" },
+                { "name": "C Programming", "grade": "34/50", "teacher": "Dr. Ann Catherine Luke" }
+            ];
+
+            // DEBUG FIX: Removed invalid ``` which was causing a major syntax error.
+            const quotes = [
+                { quote: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+                { quote: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+                { quote: "In the silence of study, you’re not just learning - you’re becoming.", author: "Me!" },
+                { quote: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
+                { quote: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+                { quote: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+                { quote: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+                { quote: "Learning is not attained by chance; it must be sought for with ardor and attended to with diligence.", author: "Abigail Adams" },
+                { quote: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
+                { quote: "Success doesn't come from what you do occasionally, it comes from what you do consistently.", author: "Marie Forleo" },
+                { quote: "Hard work beats talent when talent doesn't work hard.", author: "Tim Notke" },
+                { quote: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
+                { quote: "Dreams don’t work unless you do.", author: "John C. Maxwell" },
+                { quote: "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice...", author: "Pelé" },
+                { quote: "The only limit to our realization of tomorrow will be our doubts of today.", author: "Franklin D. Roosevelt" },
+                { quote: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" }
+            ];
+
+            const generalStudyTips = [
+                "**Active Recall:** Test yourself frequently instead of just rereading notes.",
+                "**Spaced Repetition:** Review material at increasing intervals over time.",
+                "**Elaboration:** Explain concepts in your own words and connect them to what you already know.",
+                "**Interleaving:** Mix different subjects or topics during your study sessions.",
+                "**Practice Problems:** Work through as many practice questions as possible.",
+                "**Teach Others:** Explaining a concept to someone else solidifies your understanding.",
+                "**Take Regular Breaks:** Short breaks can improve focus and retention.",
+                "**Create a Study Schedule:** Plan your study times and stick to them.",
+                "**Minimize Distractions:** Find a quiet place to study and put away your phone.",
+                "**Stay Hydrated and Eat Well:** Proper nutrition and hydration are crucial for brain function."
+            ];
+
+
+            // --- Page Navigation ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pages = document.querySelectorAll('.page');
+
+            function showPage(pageId) {
+                pages.forEach(page => page.classList.toggle('active', page.id === pageId));
+                navLinks.forEach(link => link.classList.toggle('active', link.hash === `#${pageId}`));
+            }
+
+            document.getElementById('nav-menu').addEventListener('click', (e) => {
+                if (e.target.closest('a')) {
+                    e.preventDefault();
+                    const pageId = e.target.closest('a').hash.substring(1);
+                    showPage(pageId);
+                }
+            });
+
+            // Set initial page
+            showPage('home');
+
+            // --- Home Page: Motivational Quote ---
+            const quoteEl = document.getElementById('quote');
+            const quoteAuthorEl = document.getElementById('quote-author');
+            const newQuoteBtn = document.getElementById('new-quote-btn');
+            let currentQuoteIndex = 0;
+
+            function displayQuote(index) {
+                quoteEl.textContent = `"${quotes[index].quote}"`;
+                quoteAuthorEl.textContent = `- ${quotes[index].author}`;
+            }
+
+            newQuoteBtn.addEventListener('click', () => {
+                currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+                displayQuote(currentQuoteIndex);
+            });
+
+            displayQuote(currentQuoteIndex); // Display initial quote
+
+            // --- Subjects Page ---
+            const subjectsContainer = document.getElementById('subjects-container');
+            const modal = document.getElementById('study-tips-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            let subjectsLoaded = false;
+
+            function loadSubjects() {
+                // Only load subjects once to avoid duplication
+                if (subjectsLoaded) return;
+                subjectsContainer.innerHTML = '';
+                subjectsData.forEach(subject => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-6 rounded-xl shadow-md flex flex-col justify-between';
+                    card.innerHTML = `
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">${subject.name}</h3>
+                            <p class="text-gray-600 mb-4">${subject.teacher}</p>
+                            <div class="bg-blue-100 text-blue-800 text-lg font-semibold rounded-full px-4 py-1 inline-block">
+                                Grade: ${subject.grade}
+                            </div>
+                        </div>
+                        <button data-subject="${subject.name}" class="study-tips-btn mt-4 bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition w-full">
+                            Get Study Tips
+                        </button>
+                    `;
+                    subjectsContainer.appendChild(card);
+                });
+                subjectsLoaded = true;
+            }
+
+            subjectsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('study-tips-btn')) {
+                    // const subjectName = e.target.dataset.subject; // This could be used later for subject-specific tips
+                    modalTitle.textContent = `General Study Tips`;
+                    modalBody.innerHTML = generalStudyTips.map(tip => {
+                        // Simple markdown to HTML for bolding
+                        return `<p>${tip.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+                    }).join('');
+                    modal.style.display = 'flex';
+                }
+            });
+
+            closeModalBtn.addEventListener('click', () => modal.style.display = 'none');
+            modal.addEventListener('click', (e) => {
+                // Close modal if overlay is clicked
+                if(e.target === modal) modal.style.display = 'none';
+            });
+            
+            // Load subjects only when the subjects tab is clicked
+            document.querySelector('a[href="#subjects"]').addEventListener('click', loadSubjects);
+
+            // --- To-Do List ---
+            const taskInput = document.getElementById('task-input');
+            const addTaskBtn = document.getElementById('add-task-btn');
+            const taskList = document.getElementById('task-list');
+
+            function createTaskElement(taskText) {
+                const li = document.createElement('li');
+                li.className = 'task-item flex items-center justify-between bg-gray-100 p-3 rounded-lg animate-fade-in';
+                li.innerHTML = `
+                    <span class="flex-grow pr-2">${taskText}</span>
+                    <div class="flex items-center space-x-2">
+                        <button class="complete-btn text-green-500 hover:text-green-700" title="Complete Task"><i class="fas fa-check-circle"></i></button>
+                        <button class="remove-btn text-red-500 hover:text-red-700" title="Remove Task"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                `;
+                li.querySelector('.complete-btn').addEventListener('click', () => li.classList.toggle('completed'));
+                li.querySelector('.remove-btn').addEventListener('click', () => li.remove());
+                return li;
+            }
+
+            function addTask() {
+                const taskText = taskInput.value.trim();
+                if (taskText) {
+                    taskList.appendChild(createTaskElement(taskText));
+                    taskInput.value = '';
+                    taskInput.focus();
+                }
+            }
+
+            addTaskBtn.addEventListener('click', addTask);
+            taskInput.addEventListener('keypress', (e) => e.key === 'Enter' && addTask());
+
+            // --- Calendar ---
+            const monthYearEl = document.getElementById('month-year');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const prevMonthBtn = document.getElementById('prev-month-btn');
+            const nextMonthBtn = document.getElementById('next-month-btn');
+            let currentDate = new Date();
+
+            function renderCalendar() {
+                calendarGrid.innerHTML = '';
+                const month = currentDate.getMonth();
+                const year = currentDate.getFullYear();
+                monthYearEl.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
+                
+                // Get the day of the week for the first day of the month (0=Sun, 1=Mon, etc.)
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                dayNames.forEach(day => {
+                    const dayNameEl = document.createElement('div');
+                    dayNameEl.className = 'text-center font-semibold text-gray-600';
+                    dayNameEl.textContent = day;
+                    calendarGrid.appendChild(dayNameEl);
+                });
+                
+                // Add empty cells for days before the first day of the month
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    calendarGrid.appendChild(document.createElement('div'));
+                }
+
+                // Add day cells for the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayCell = document.createElement('div');
+                    dayCell.className = 'calendar-day text-center p-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors';
+                    dayCell.textContent = day;
+                    const today = new Date();
+                    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                        dayCell.classList.add('today');
+                    }
+                    calendarGrid.appendChild(dayCell);
+                }
+            }
+            prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
+            nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+            
+            // Render calendar only when the calendar tab is clicked
+            document.querySelector('a[href="#calendar"]').addEventListener('click', renderCalendar);
+
+            // --- Study Timer (Pomodoro) ---
+            const timerDisplay = document.getElementById('timer-display');
+            const timerModeEl = document.getElementById('timer-mode');
+            const startBtn = document.getElementById('start-timer-btn');
+            const pauseBtn = document.getElementById('pause-timer-btn');
+            const resetBtn = document.getElementById('reset-timer-btn');
+
+            let timerInterval = null;
+            let totalSeconds = 25 * 60;
+            let isPaused = true;
+            let isWorkSession = true;
+            const workDuration = 25 * 60;
+            const breakDuration = 5 * 60;
+            let toneSynth; // For sound
+
+            function updateTimerDisplay() {
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            function startTimer() {
+                // Initialize Tone.js on first user interaction
+                if (!toneSynth) {
+                    toneSynth = new Tone.Synth().toDestination();
+                }
+
+                if (isPaused) {
+                    isPaused = false;
+                    startBtn.textContent = 'Start';
+                    timerInterval = setInterval(() => {
+                        if (totalSeconds > 0) {
+                            totalSeconds--;
+                            updateTimerDisplay();
+                        } else {
+                            clearInterval(timerInterval);
+                            toneSynth.triggerAttackRelease("C5", "8n");
+                            isWorkSession = !isWorkSession;
+                            totalSeconds = isWorkSession ? workDuration : breakDuration;
+                            timerModeEl.textContent = isWorkSession ? 'Time to focus pal!' : 'You did it, take a break!';
+                            isPaused = true;
+                            updateTimerDisplay();
+                        }
+                    }, 1000);
+                }
+            }
+
+            function pauseTimer() {
+                isPaused = true;
+                startBtn.textContent = 'Resume';
+                clearInterval(timerInterval);
+            }
+
+            function resetTimer() {
+                pauseTimer(); // This also clears the interval
+                isWorkSession = true;
+                totalSeconds = workDuration;
+                timerModeEl.textContent = 'Time to focus pal!';
+                updateTimerDisplay();
+            }
+
+
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resetBtn.addEventListener('click', resetTimer);
+
+            updateTimerDisplay(); // Initial display
+
+            // DEBUG FIX: Removed redundant, nested DOMContentLoaded listener.
+        });
+    </script>
+</body>
+</html>
