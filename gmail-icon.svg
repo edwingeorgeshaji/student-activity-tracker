@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="50" height="50">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f4f4"/>
+      <stop offset="1" stop-color="#dedede"/>
+    </linearGradient>
+    <linearGradient id="left" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#d93b30"/>
+      <stop offset="1" stop-color="#e34b40"/>
+    </linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#b52c1e"/>
+      <stop offset="1" stop-color="#a9271b"/>
+    </linearGradient>
+    <linearGradient id="flap" x1="0" y1="0" x2="0.9" y2="1">
+      <stop stop-color="#f7f7f7"/>
+      <stop offset="1" stop-color="#dedede"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2"/>
+      <feOffset dy="5"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".32"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <path d="M43 76h426c16 0 29 13 29 29v300c0 18-14 32-32 32H46c-18 0-31-14-31-32V105c0-16 12-29 28-29z" fill="#111"/>
+    <path d="M44 76h424c17 0 30 13 30 30v299c0 18-14 32-32 32H46c-18 0-31-14-31-32V106c0-17 13-30 29-30z" fill="#e5e5e5"/>
+    <path d="M15 106c0-17 13-30 30-30h30v361H47c-18 0-32-14-32-32z" fill="url(#left)"/>
+    <path d="M437 76h31c17 0 30 13 30 30v299c0 18-14 32-32 32h-29z" fill="url(#right)"/>
+    <path d="M75 163 256 324 437 163v274H75z" fill="url(#paper)"/>
+    <path d="M75 163 256 324 75 437z" fill="#e4e4e4"/>
+    <path d="M437 163 256 324 437 437z" fill="#eeeeee"/>
+    <path d="M75 437 256 324 437 437z" fill="#f2f2f2"/>
+    <path d="M15 106c0-17 13-30 30-30h11l200 145L457 76h11c17 0 30 13 30 30 0 10-5 19-13 25L256 294 27 131c-8-6-12-15-12-25z" fill="#c9362b" opacity=".55"/>
+    <path d="M15 105c0-16 13-29 30-29h11l200 145L457 76h11c17 0 30 13 30 29 0 10-5 20-13 26L256 294 27 131c-8-6-12-16-12-26z" fill="#e04438"/>
+    <path d="M15 105c0-16 13-29 30-29h11l200 145L457 76h11c17 0 30 13 30 29 0 10-5 20-13 26L256 294 27 131c-8-6-12-16-12-26z" fill="none" stroke="#f05a4f" stroke-width="1.5" opacity=".45"/>
+  </g>
+</svg>
